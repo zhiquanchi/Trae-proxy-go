@@ -282,6 +282,13 @@ go fmt ./...
 go vet ./...
 ```
 
+## GitHub Actions（CI / Release）
+
+仓库内置 GitHub Actions 工作流：每次 push 到 `main`（以及手动触发 `workflow_dispatch`）都会自动运行 `go test ./...`，并构建 Windows/macOS/Linux 的可执行文件，最后把产物上传到 GitHub Releases 的 `nightly` 预发布版本。
+
+触发方式参考文档：
+https://docs.github.com/zh/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow
+
 ## 许可证
 
 本项目采用 MIT 许可证。
