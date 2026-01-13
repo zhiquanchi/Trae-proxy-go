@@ -12,26 +12,7 @@
 - **TUI 界面**: 友好的终端用户界面，方便配置管理
 - **高性能**: 基于 Go 实现，性能优异
 
-## 项目结构
-
-```
-trae-proxy-go/
-├── cmd/
-│   ├── proxy/          # 主代理服务器程序
-│   └── cli/            # 命令行管理工具
-├── internal/
-│   ├── config/         # 配置管理
-│   ├── proxy/          # 代理核心逻辑
-│   ├── cert/           # 证书管理
-│   └── logger/         # 日志
-├── pkg/
-│   └── models/         # 数据模型
-├── config.yaml         # 配置文件
-├── ca/                 # 证书目录
-└── README.md
-```
-
-## 快速开始
+## 使用
 
 ### 系统要求
 
@@ -118,15 +99,15 @@ go run cmd/proxy/main.go
 ./trae-proxy --debug
 ```
 
-## CLI 工具使用
+### CLI 工具使用
 
-### 列出配置
+#### 列出配置
 
 ```bash
 ./trae-proxy-cli list
 ```
 
-### 添加 API 配置
+#### 添加 API 配置
 
 ```bash
 ./trae-proxy-cli add \
@@ -138,7 +119,7 @@ go run cmd/proxy/main.go
   --active
 ```
 
-### 更新 API 配置
+#### 更新 API 配置
 
 ```bash
 ./trae-proxy-cli update \
@@ -147,27 +128,27 @@ go run cmd/proxy/main.go
   --endpoint "https://new-api.example.com"
 ```
 
-### 激活 API 配置
+#### 激活 API 配置
 
 ```bash
 ./trae-proxy-cli activate --index 0
 ```
 
-### 删除 API 配置
+#### 删除 API 配置
 
 ```bash
 ./trae-proxy-cli remove --index 0
 ```
 
-### 更新域名
+#### 更新域名
 
 ```bash
 ./trae-proxy-cli domain --name api.openai.com
 ```
 
-## 客户端配置
+### 客户端配置
 
-### 与其他代理共存 / 冲突排查
+#### 与其他代理共存 / 冲突排查
 
 如果你的机器上同时开着其他代理（如 Clash / Surge / 系统代理 / TUN 模式等），可能会出现两类常见冲突：
 
@@ -176,7 +157,7 @@ go run cmd/proxy/main.go
 2. **链路冲突（最常见）**：如果客户端走“系统代理/全局代理”，请求可能先被其他代理接管（例如 CONNECT `api.openai.com:443`），此时本机 `hosts` 指向 `127.0.0.1` 可能不会生效，流量到不了 Trae-Proxy。
    - 解决：在代理软件中把 `api.openai.com` 设置为 **直连/绕过代理**（bypass / DIRECT），并确保 `127.0.0.1`、`localhost` 不被代理。
 
-#### 一键诊断
+##### 一键诊断
 
 使用 CLI 的 `doctor` 命令检测环境/系统代理与端口占用，并生成建议设置：
 
@@ -189,7 +170,7 @@ go run cmd/proxy/main.go
 
 > 说明：Trae-Proxy 转发到后端时会使用 Go 的默认代理规则，可能受进程环境变量 `HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY` 影响；`doctor` 会给出推荐的 `NO_PROXY` 值以避免请求被其他代理接管。
 
-### 1. 获取服务器自签证书
+#### 1. 获取服务器自签证书
 
 从服务器复制 CA 证书到本地：
 
@@ -197,9 +178,9 @@ go run cmd/proxy/main.go
 scp user@your-server-ip:/path/to/trae-proxy-go/ca/ca.crt .
 ```
 
-### 2. 安装 CA 证书
+#### 2. 安装 CA 证书
 
-#### Windows 系统
+##### Windows 系统
 
 1. 双击 `ca.crt` 文件
 2. 选择"安装证书"
@@ -207,7 +188,7 @@ scp user@your-server-ip:/path/to/trae-proxy-go/ca/ca.crt .
 4. 选择"将所有证书放入下列存储" → "浏览" → "受信任的根证书颁发机构"
 5. 完成安装
 
-#### macOS 系统
+##### macOS 系统
 
 1. 双击 `ca.crt` 文件，系统会打开"钥匙串访问"
 2. 将证书添加到"系统"钥匙串
@@ -215,9 +196,9 @@ scp user@your-server-ip:/path/to/trae-proxy-go/ca/ca.crt .
 4. 将"使用此证书时"设置为"始终信任"
 5. 关闭窗口并输入管理员密码确认
 
-### 3. 修改 hosts 文件
+#### 3. 修改 hosts 文件
 
-#### Windows 系统
+##### Windows 系统
 
 编辑 `C:\Windows\System32\drivers\etc\hosts`，添加：
 
@@ -227,7 +208,7 @@ your-server-ip api.openai.com
 
 > 如果 Trae-Proxy 就运行在本机，将 `your-server-ip` 替换为 `127.0.0.1`（或 `::1`）。
 
-#### macOS 系统
+##### macOS 系统
 
 编辑 `/etc/hosts`，添加：
 
@@ -237,7 +218,7 @@ your-server-ip api.openai.com
 
 > 如果 Trae-Proxy 就运行在本机，将 `your-server-ip` 替换为 `127.0.0.1`（或 `::1`）。
 
-### 4. 测试连接
+#### 4. 测试连接
 
 ```bash
 curl https://api.openai.com/v1/models
@@ -245,7 +226,28 @@ curl https://api.openai.com/v1/models
 
 如果配置正确，您应该能看到代理服务器返回的模型列表。
 
-## 实现原理
+## 项目结构与开发
+
+### 项目结构
+
+```
+trae-proxy-go/
+├── cmd/
+│   ├── proxy/          # 主代理服务器程序
+│   └── cli/            # 命令行管理工具
+├── internal/
+│   ├── config/         # 配置管理
+│   ├── proxy/          # 代理核心逻辑
+│   ├── cert/           # 证书管理
+│   └── logger/         # 日志
+├── pkg/
+│   └── models/         # 数据模型
+├── config.yaml         # 配置文件
+├── ca/                 # 证书目录
+└── README.md
+```
+
+### 实现原理
 
 ```
  +------------------+    +--------------+    +------------------+
@@ -262,14 +264,14 @@ curl https://api.openai.com/v1/models
    Backend Services       Proxy Server        Client Apps
 ```
 
-## 与 Python 版本的差异
+### 与 Python 版本的差异
 
 1. **性能**: Go 版本性能更好，资源占用更少
 2. **部署**: 编译为单一二进制文件，无需 Python 运行时
 3. **依赖**: 依赖更少，只需要 OpenSSL（用于证书生成）
 4. **CLI 工具**: CLI 工具功能基本相同，但实现方式不同
 
-## 开发
+### 开发
 
 ```bash
 # 运行测试（如果有）
@@ -282,7 +284,7 @@ go fmt ./...
 go vet ./...
 ```
 
-## GitHub Actions（CI / Release）
+### GitHub Actions（CI / Release）
 
 仓库内置 GitHub Actions 工作流：每次 push 到 `main`（以及手动触发 `workflow_dispatch`）都会自动运行 `go test ./...`，并构建 Windows/macOS/Linux 的可执行文件，最后把产物上传到 GitHub Releases 的 `nightly` 预发布版本。
 
