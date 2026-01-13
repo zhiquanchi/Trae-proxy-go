@@ -7,6 +7,7 @@ import (
 	"os"
 	"trae-proxy-go/internal/cert"
 	"trae-proxy-go/internal/config"
+	"trae-proxy-go/internal/doctor"
 	"trae-proxy-go/internal/tui"
 	"trae-proxy-go/pkg/models"
 )
@@ -41,6 +42,8 @@ func main() {
 		handleCert()
 	case "start":
 		handleStart()
+	case "doctor":
+		handleDoctor()
 	default:
 		fmt.Fprintf(os.Stderr, "未知命令: %s\n", command)
 		printUsage()
@@ -60,6 +63,7 @@ func printUsage() {
 	fmt.Println("  domain                 更新代理域名")
 	fmt.Println("  cert                   生成证书")
 	fmt.Println("  start                  启动代理服务器")
+	fmt.Println("  doctor                 检测代理/端口冲突并给出建议")
 }
 
 func handleList() {
@@ -371,5 +375,73 @@ func handleStart() {
 	fmt.Println()
 	fmt.Println("\n或者直接运行:")
 	fmt.Println("  go run cmd/proxy/main.go")
+}
+
+func handleDoctor() {
+	fs := flag.NewFlagSet("doctor", flag.ExitOnError)
+	configPath := fs.String("config", configFile, "配置文件路径")
+	domain := fs.String("domain", "", "代理域名（覆盖配置文件）")
+	port := fs.Int("port", 0, "监听端口（覆盖配置文件）")
+
+	fs.Parse(os.Args[2:])
+
+	cfg, err := config.LoadConfig(*configPath)
+	if err != nil {
+		cfg = config.GetDefaultConfig()
+	}
+
+	targetDomain := cfg.Domain
+	if *domain != "" {
+		targetDomain = *domain
+	}
+	targetPort := cfg.Server.Port
+	if *port != 0 {
+		targetPort = *port
+	}
+
+	report := doctor.GenerateReport(targetDomain, targetPort)
+
+	fmt.Println("Trae-Proxy Doctor")
+	fmt.Printf("OS: %s/%s\n", report.GOOS, report.GOARCH)
+	fmt.Printf("Domain: %s\n", report.Domain)
+	fmt.Printf("Port: %d (%s)\n", report.Port, report.PortStatus)
+	fmt.Println()
+
+	if len(report.Env) == 0 {
+		fmt.Println("Env proxy: (none)")
+	} else {
+		fmt.Println("Env proxy:")
+		for _, k := range []string{"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"} {
+			if v, ok := report.Env[k]; ok && v != "" {
+				fmt.Printf("  %s=%s\n", k, v)
+			}
+		}
+	}
+	fmt.Println()
+
+	if report.System == nil {
+		fmt.Println("System proxy: (unsupported on this OS)")
+	} else {
+		fmt.Printf("System proxy: enabled=%v\n", report.System.Enabled)
+		if report.System.Server != "" {
+			fmt.Printf("  server=%s\n", report.System.Server)
+		}
+		if report.System.Override != "" {
+			fmt.Printf("  override=%s\n", report.System.Override)
+		}
+		fmt.Printf("  source=%s\n", report.System.Source)
+	}
+	fmt.Println()
+
+	fmt.Println("Suggested settings:")
+	fmt.Printf("  NO_PROXY=%s\n", report.SuggestedNoProxy)
+	fmt.Println("  PowerShell: $env:NO_PROXY=\"<value above>\"")
+	fmt.Println("  CMD: set NO_PROXY=<value above>")
+	fmt.Println()
+
+	fmt.Println("Notes:")
+	for _, note := range report.Notes {
+		fmt.Printf("  - %s\n", note)
+	}
 }
 

@@ -167,6 +167,28 @@ go run cmd/proxy/main.go
 
 ## 客户端配置
 
+### 与其他代理共存 / 冲突排查
+
+如果你的机器上同时开着其他代理（如 Clash / Surge / 系统代理 / TUN 模式等），可能会出现两类常见冲突：
+
+1. **端口冲突**：Trae-Proxy 默认监听 `443`（见 `config.yaml` 的 `server.port`）。如果已有程序占用 443，Trae-Proxy 将无法启动。
+   - 解决：关闭占用 443 的程序，或修改 `server.port` 为其他端口（并确保客户端能配置对应的端口 / base_url），必要时使用端口转发。
+2. **链路冲突（最常见）**：如果客户端走“系统代理/全局代理”，请求可能先被其他代理接管（例如 CONNECT `api.openai.com:443`），此时本机 `hosts` 指向 `127.0.0.1` 可能不会生效，流量到不了 Trae-Proxy。
+   - 解决：在代理软件中把 `api.openai.com` 设置为 **直连/绕过代理**（bypass / DIRECT），并确保 `127.0.0.1`、`localhost` 不被代理。
+
+#### 一键诊断
+
+使用 CLI 的 `doctor` 命令检测环境/系统代理与端口占用，并生成建议设置：
+
+```bash
+./trae-proxy-cli doctor
+
+# 可选：覆盖配置文件、域名、端口
+./trae-proxy-cli doctor --config config.yaml --domain api.openai.com --port 443
+```
+
+> 说明：Trae-Proxy 转发到后端时会使用 Go 的默认代理规则，可能受进程环境变量 `HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY` 影响；`doctor` 会给出推荐的 `NO_PROXY` 值以避免请求被其他代理接管。
+
 ### 1. 获取服务器自签证书
 
 从服务器复制 CA 证书到本地：
@@ -203,6 +225,8 @@ scp user@your-server-ip:/path/to/trae-proxy-go/ca/ca.crt .
 your-server-ip api.openai.com
 ```
 
+> 如果 Trae-Proxy 就运行在本机，将 `your-server-ip` 替换为 `127.0.0.1`（或 `::1`）。
+
 #### macOS 系统
 
 编辑 `/etc/hosts`，添加：
@@ -210,6 +234,8 @@ your-server-ip api.openai.com
 ```
 your-server-ip api.openai.com
 ```
+
+> 如果 Trae-Proxy 就运行在本机，将 `your-server-ip` 替换为 `127.0.0.1`（或 `::1`）。
 
 ### 4. 测试连接
 
