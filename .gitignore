@@ -1,0 +1,49 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+trae-proxy
+trae-proxy-cli
+trae-proxy.exe
+trae-proxy-cli.exe
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Certificate directory
+ca/
+*.key
+*.crt
+*.csr
+*.pem
+*.srl
+
+# Config (optional - remove if you want to track config.yaml)
+# config.yaml
+
+# Logs
+*.log
+debug_request.log
+
