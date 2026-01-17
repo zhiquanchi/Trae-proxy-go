@@ -43,10 +43,15 @@ func newListView(cfg *models.Config) listViewModel {
 	}
 }
 
-func (m listViewModel) update(msg tea.Msg, cfg *models.Config) (listViewModel, tea.Cmd) {
+func (m listViewModel) update(msg tea.Msg, cfg *models.Config, mode vimMode) (listViewModel, tea.Cmd) {
 	m.config = cfg
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Only handle navigation in normal mode
+		if mode != vimModeNormal {
+			return m, nil
+		}
+
 		switch msg.String() {
 		case "up", "k":
 			if m.selected > 0 {
@@ -56,7 +61,21 @@ func (m listViewModel) update(msg tea.Msg, cfg *models.Config) (listViewModel, t
 			if m.selected < len(m.config.APIs)-1 {
 				m.selected++
 			}
-		case "a":
+		case "g":
+			// Go to top (gg in vim)
+			m.selected = 0
+		case "G":
+			// Go to bottom
+			if len(m.config.APIs) > 0 {
+				m.selected = len(m.config.APIs) - 1
+			}
+		case "h":
+			// Move left - could be used for collapsing sections in future
+			return m, nil
+		case "l":
+			// Move right - could be used for expanding sections in future
+			return m, nil
+		case "a", "i":
 			m.action = &action{action: actionAdd}
 		case "e":
 			if len(m.config.APIs) > 0 {
@@ -66,7 +85,7 @@ func (m listViewModel) update(msg tea.Msg, cfg *models.Config) (listViewModel, t
 			if len(m.config.APIs) > 0 && len(m.config.APIs) > 1 {
 				m.action = &action{action: actionDelete, index: m.selected}
 			}
-		case " ":
+		case " ", "x":
 			if len(m.config.APIs) > 0 {
 				m.action = &action{action: actionActivate, index: m.selected}
 			}
@@ -79,7 +98,7 @@ func (m listViewModel) update(msg tea.Msg, cfg *models.Config) (listViewModel, t
 	return m, nil
 }
 
-func (m listViewModel) view() string {
+func (m listViewModel) view(mode vimMode) string {
 	var s strings.Builder
 	s.WriteString(titleStyle.Render("Trae-Proxy 配置管理"))
 	s.WriteString("\n\n")
@@ -120,7 +139,8 @@ func (m listViewModel) view() string {
 		}
 	}
 
-	s.WriteString(helpStyle.Render("快捷键: [a]添加 [e]编辑 [d]删除 [空格]激活 [D]域名 [C]证书 [q]退出"))
+	// Update help text to show vim keybindings
+	s.WriteString(helpStyle.Render("Vim模式: [j/k]上下 [g/G]首尾 [a/i]添加 [e]编辑 [d]删除 [空格/x]激活 [D]域名 [C]证书 [:q]退出"))
 	return s.String()
 }
 
