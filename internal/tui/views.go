@@ -134,7 +134,7 @@ func (m listViewModel) view(mode vimMode) string {
 	}
 
 	// Update help text to show vim keybindings
-	s.WriteString(helpStyle.Render("Vim模式: [j/k]上下 [g/G]首尾 [a]添加 [e]编辑 [d]删除 [空格/x]激活 [D]域名 [C]证书 [:q]退出"))
+	s.WriteString(helpStyle.Render("Vim: [j/k]上下 [g/G]首尾 [a]添加 [e]编辑 [d]删除 [x]激活 [D]域名 [C]证书 [:q]退出"))
 	return s.String()
 }
 
