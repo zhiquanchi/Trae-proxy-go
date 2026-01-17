@@ -299,7 +299,7 @@ func (m model) executeCommand() tea.Cmd {
 	case "q", "quit":
 		return tea.Quit
 	case "w", "write":
-		// Configuration is auto-saved, so just show confirmation
+		// Configuration is auto-saved in this TUI, no action needed
 		return nil
 	case "wq":
 		return tea.Quit

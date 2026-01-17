@@ -62,7 +62,7 @@ func (m listViewModel) update(msg tea.Msg, cfg *models.Config, mode vimMode) (li
 				m.selected++
 			}
 		case "g":
-			// Go to top (gg in vim)
+			// Go to top (simplified from vim's gg for single-key convenience)
 			m.selected = 0
 		case "G":
 			// Go to bottom
