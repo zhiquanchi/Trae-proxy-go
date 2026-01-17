@@ -14,7 +14,6 @@ type vimMode int
 
 const (
 	vimModeNormal vimMode = iota
-	vimModeInsert
 	vimModeCommand
 )
 
@@ -89,9 +88,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case ":":
 				m.vimMode = vimModeCommand
 				m.commandBuf = ""
-				return m, nil
-			case "i":
-				// Insert mode is only for text input views
 				return m, nil
 			}
 		}
@@ -338,8 +334,6 @@ func (m model) View() string {
 		switch m.vimMode {
 		case vimModeNormal:
 			modeIndicator = vimModeStyle.Render("-- NORMAL --")
-		case vimModeInsert:
-			modeIndicator = vimModeStyle.Render("-- INSERT --")
 		case vimModeCommand:
 			modeIndicator = vimModeStyle.Render(":" + m.commandBuf)
 		}
