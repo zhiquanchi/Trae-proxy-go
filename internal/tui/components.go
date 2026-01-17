@@ -39,5 +39,10 @@ var (
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("62")).
 			Padding(1, 2)
+
+	vimModeStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("226")).
+			Bold(true).
+			MarginTop(1)
 )
 

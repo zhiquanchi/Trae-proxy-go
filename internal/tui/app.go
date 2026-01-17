@@ -10,16 +10,25 @@ import (
 
 const configFile = "config.yaml"
 
+type vimMode int
+
+const (
+	vimModeNormal vimMode = iota
+	vimModeCommand
+)
+
 type model struct {
-	view      viewType
-	config    *models.Config
-	selected  int
-	err       error
-	listView  listViewModel
-	addView   addViewModel
-	editView  editViewModel
+	view       viewType
+	config     *models.Config
+	selected   int
+	err        error
+	listView   listViewModel
+	addView    addViewModel
+	editView   editViewModel
 	domainView domainViewModel
-	certView  certViewModel
+	certView   certViewModel
+	vimMode    vimMode
+	commandBuf string
 }
 
 type viewType int
@@ -48,14 +57,16 @@ func InitialModel() model {
 	}
 
 	return model{
-		view:      viewList,
-		config:    cfg,
-		selected:  0,
-		listView:  newListView(cfg),
-		addView:   newAddView(),
-		editView:  newEditView(),
+		view:       viewList,
+		config:     cfg,
+		selected:   0,
+		listView:   newListView(cfg),
+		addView:    newAddView(),
+		editView:   newEditView(),
 		domainView: newDomainView(cfg.Domain),
-		certView:  newCertView(cfg.Domain),
+		certView:   newCertView(cfg.Domain),
+		vimMode:    vimModeNormal,
+		commandBuf: "",
 	}
 }
 
@@ -66,18 +77,50 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Handle vim command mode
+		if m.vimMode == vimModeCommand {
+			return m.handleCommandMode(msg)
+		}
+
+		// Global keybindings in normal mode
+		if m.vimMode == vimModeNormal && m.view == viewList {
+			switch msg.String() {
+			case ":":
+				m.vimMode = vimModeCommand
+				m.commandBuf = ""
+				return m, nil
+			}
+		}
+
 		switch msg.String() {
-		case "ctrl+c", "q":
-			if m.view == viewList {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "q":
+			if m.view == viewList && m.vimMode == vimModeNormal {
 				return m, tea.Quit
 			}
-			// 从其他视图返回列表视图
-			m.view = viewList
-			// 重新加载配置
-			cfg, err := config.LoadConfig(configFile)
-			if err == nil {
-				m.config = cfg
-				m.listView = newListView(cfg)
+			if m.view != viewList {
+				// 从其他视图返回列表视图
+				m.view = viewList
+				m.vimMode = vimModeNormal
+				// 重新加载配置
+				cfg, err := config.LoadConfig(configFile)
+				if err == nil {
+					m.config = cfg
+					m.listView = newListView(cfg)
+				}
+			}
+			return m, nil
+		case "esc":
+			// Esc always returns to normal mode
+			m.vimMode = vimModeNormal
+			if m.view != viewList {
+				m.view = viewList
+				cfg, err := config.LoadConfig(configFile)
+				if err == nil {
+					m.config = cfg
+					m.listView = newListView(cfg)
+				}
 			}
 			return m, nil
 		}
@@ -90,7 +133,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch m.view {
 	case viewList:
-		m.listView, cmd = m.listView.update(msg, m.config)
+		m.listView, cmd = m.listView.update(msg, m.config, m.vimMode)
 		if m.listView.action != nil {
 			switch m.listView.action.action {
 			case actionAdd:
@@ -227,25 +270,86 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m model) handleCommandMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
+		cmd := m.executeCommand()
+		m.vimMode = vimModeNormal
+		m.commandBuf = ""
+		return m, cmd
+	case "esc":
+		m.vimMode = vimModeNormal
+		m.commandBuf = ""
+		return m, nil
+	case "backspace":
+		if len(m.commandBuf) > 0 {
+			m.commandBuf = m.commandBuf[:len(m.commandBuf)-1]
+		}
+		return m, nil
+	default:
+		// Only accept valid vim command characters
+		if len(msg.String()) == 1 && isValidCommandChar(msg.String()[0]) {
+			m.commandBuf += msg.String()
+		}
+		return m, nil
+	}
+}
+
+// isValidCommandChar checks if a character is valid for vim commands
+func isValidCommandChar(char byte) bool {
+	return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || 
+	       (char >= '0' && char <= '9') || char == '-' || char == '_'
+}
+
+func (m model) executeCommand() tea.Cmd {
+	switch m.commandBuf {
+	case "q", "quit":
+		return tea.Quit
+	case "w", "write":
+		// Configuration is auto-saved in this TUI, no action needed
+		return nil
+	case "wq":
+		return tea.Quit
+	}
+	return nil
+}
+
 func (m model) View() string {
 	if m.err != nil {
 		return fmt.Sprintf("错误: %v\n\n按 q 退出", m.err)
 	}
 
+	var content string
 	switch m.view {
 	case viewList:
-		return m.listView.view()
+		content = m.listView.view(m.vimMode)
 	case viewAdd:
-		return m.addView.view()
+		content = m.addView.view()
 	case viewEdit:
-		return m.editView.view()
+		content = m.editView.view()
 	case viewDomain:
-		return m.domainView.view()
+		content = m.domainView.view()
 	case viewCert:
-		return m.certView.view()
+		content = m.certView.view()
 	default:
-		return "未知视图"
+		content = "未知视图"
 	}
+
+	// Add vim mode indicator and command buffer at the bottom
+	if m.view == viewList {
+		modeIndicator := ""
+		switch m.vimMode {
+		case vimModeNormal:
+			modeIndicator = vimModeStyle.Render("-- NORMAL --")
+		case vimModeCommand:
+			modeIndicator = vimModeStyle.Render(":" + m.commandBuf)
+		}
+		if modeIndicator != "" {
+			content += "\n" + modeIndicator
+		}
+	}
+
+	return content
 }
 
 func Run() error {
