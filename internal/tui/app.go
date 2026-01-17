@@ -297,10 +297,8 @@ func (m model) handleCommandMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // isValidCommandChar checks if a character is valid for vim commands
 func isValidCommandChar(char byte) bool {
-	return (char >= 'a' && char <= 'z') || 
-	       (char >= 'A' && char <= 'Z') || 
-	       (char >= '0' && char <= '9') || 
-	       char == '-' || char == '_'
+	return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || 
+	       (char >= '0' && char <= '9') || char == '-' || char == '_'
 }
 
 func (m model) executeCommand() tea.Cmd {
