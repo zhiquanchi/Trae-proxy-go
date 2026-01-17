@@ -287,8 +287,13 @@ func (m model) handleCommandMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	default:
+		// Only accept alphanumeric characters and some common vim command symbols
 		if len(msg.String()) == 1 {
-			m.commandBuf += msg.String()
+			char := msg.String()[0]
+			if (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || 
+			   (char >= '0' && char <= '9') || char == '-' || char == '_' {
+				m.commandBuf += msg.String()
+			}
 		}
 		return m, nil
 	}
