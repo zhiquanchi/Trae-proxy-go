@@ -533,11 +533,10 @@ type certViewModel struct {
 	generating  bool
 	success     bool
 	err         error
-	autoConfig  bool
 	configuring bool
 	configDone  bool
 	configErr   error
-	stage       string // "prompt", "generating", "generated", "configuring", "complete"
+	stage       string // "prompt", "generating", "generated", "ask_config", "configuring", "complete", "skip_config", "config_error", "error"
 }
 
 func newCertView(domain string) certViewModel {
@@ -629,11 +628,6 @@ func (m certViewModel) view() string {
 		s.WriteString(borderStyle.Render("证书文件已保存到 ca/ 目录"))
 		s.WriteString("\n\n")
 		s.WriteString(helpStyle.Render("[回车]继续配置"))
-		// 自动进入下一阶段
-		go func() {
-			// 使用一个小延迟让用户看到成功消息
-			m.stage = "ask_config"
-		}()
 
 	case "ask_config":
 		s.WriteString(successStyle.Render("证书生成成功!\n\n"))

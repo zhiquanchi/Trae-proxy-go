@@ -7,7 +7,10 @@ import (
 	"path/filepath"
 )
 
-// installCACert 在Linux上安装CA证书
+// installCACert 在Linux上安装CA证书到系统信任存储
+// certPath: CA证书文件的完整路径
+// 支持Debian/Ubuntu (update-ca-certificates) 和 Red Hat/CentOS (update-ca-trust)
+// 注意：需要sudo权限
 func installCACert(certPath string) error {
 	// 不同Linux发行版可能有不同的证书目录
 	// 这里使用最常见的方法：Debian/Ubuntu系列

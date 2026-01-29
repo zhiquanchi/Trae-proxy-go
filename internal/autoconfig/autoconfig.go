@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 // AutoConfigure 在证书生成后自动配置系统
@@ -13,24 +14,24 @@ import (
 // installCA: 是否安装CA证书到系统信任存储
 // updateHosts: 是否更新hosts文件
 func AutoConfigure(domain, caDir string, installCA, updateHosts bool) error {
-	var errors []error
+	var errorMsgs []string
 
 	// 安装CA证书
 	if installCA {
 		if err := installCACertificate(caDir); err != nil {
-			errors = append(errors, fmt.Errorf("安装CA证书失败: %w", err))
+			errorMsgs = append(errorMsgs, fmt.Sprintf("安装CA证书失败: %v", err))
 		}
 	}
 
 	// 更新hosts文件
 	if updateHosts {
 		if err := updateHostsFile(domain); err != nil {
-			errors = append(errors, fmt.Errorf("更新hosts文件失败: %w", err))
+			errorMsgs = append(errorMsgs, fmt.Sprintf("更新hosts文件失败: %v", err))
 		}
 	}
 
-	if len(errors) > 0 {
-		return fmt.Errorf("自动配置遇到错误: %v", errors)
+	if len(errorMsgs) > 0 {
+		return fmt.Errorf("自动配置遇到以下错误:\n%s", strings.Join(errorMsgs, "\n"))
 	}
 
 	return nil
@@ -90,64 +91,22 @@ func updateHostsFile(domain string) error {
 
 // containsHostsEntry 检查hosts文件内容是否已包含该域名
 func containsHostsEntry(content, domain string) bool {
-	lines := splitLines(content)
+	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		// 跳过注释和空行
-		trimmed := trimSpace(line)
+		trimmed := strings.TrimSpace(line)
 		if len(trimmed) == 0 || trimmed[0] == '#' {
 			continue
 		}
 
-		// 检查是否包含该域名
-		if containsString(trimmed, domain) {
-			return true
-		}
-	}
-	return false
-}
-
-// splitLines 将字符串按换行符分割
-func splitLines(s string) []string {
-	var lines []string
-	start := 0
-	for i := 0; i < len(s); i++ {
-		if s[i] == '\n' {
-			lines = append(lines, s[start:i])
-			start = i + 1
-		}
-	}
-	if start < len(s) {
-		lines = append(lines, s[start:])
-	}
-	return lines
-}
-
-// trimSpace 去除字符串前后的空白字符
-func trimSpace(s string) string {
-	start := 0
-	end := len(s)
-
-	// 去除前导空白
-	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\r') {
-		start++
-	}
-
-	// 去除尾部空白
-	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\r') {
-		end--
-	}
-
-	return s[start:end]
-}
-
-// containsString 检查字符串是否包含子串
-func containsString(s, substr string) bool {
-	if len(substr) > len(s) {
-		return false
-	}
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
+		// 按空白字符分割，获取域名部分
+		fields := strings.Fields(trimmed)
+		// hosts文件格式: IP domain [aliases...]
+		// 检查第二个字段及之后是否有匹配的域名
+		for i := 1; i < len(fields); i++ {
+			if fields[i] == domain {
+				return true
+			}
 		}
 	}
 	return false
