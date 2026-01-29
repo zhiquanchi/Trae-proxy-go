@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"trae-proxy-go/internal/autoconfig"
 	"trae-proxy-go/internal/cert"
 	"trae-proxy-go/internal/config"
 	"trae-proxy-go/internal/doctor"
@@ -334,6 +335,9 @@ func handleDomain() {
 func handleCert() {
 	fs := flag.NewFlagSet("cert", flag.ExitOnError)
 	domain := fs.String("domain", "", "域名（默认使用配置中的域名）")
+	autoConfig := fs.Bool("auto-config", false, "自动配置系统（安装CA证书和更新hosts文件，需要管理员权限）")
+	installCA := fs.Bool("install-ca", false, "仅安装CA证书到系统信任存储")
+	updateHosts := fs.Bool("update-hosts", false, "仅更新hosts文件")
 
 	fs.Parse(os.Args[2:])
 
@@ -357,6 +361,38 @@ func handleCert() {
 	}
 
 	fmt.Println("证书生成成功")
+
+	// 处理自动配置
+	if *autoConfig || *installCA || *updateHosts {
+		// 确定要执行的操作
+		shouldInstallCA := *autoConfig || *installCA
+		shouldUpdateHosts := *autoConfig || *updateHosts
+
+		if autoconfig.NeedsElevatedPrivileges() {
+			fmt.Println("\n注意: 自动配置需要管理员/root权限")
+		}
+
+		fmt.Println("\n开始自动配置...")
+		if err := autoconfig.AutoConfigure(targetDomain, "ca", shouldInstallCA, shouldUpdateHosts); err != nil {
+			fmt.Fprintf(os.Stderr, "\n自动配置失败: %v\n", err)
+			fmt.Println("\n请尝试手动配置：")
+			fmt.Println(autoconfig.GetInstructions(targetDomain, "ca"))
+			os.Exit(1)
+		}
+
+		fmt.Println("自动配置成功!")
+		if shouldInstallCA {
+			fmt.Println("- CA证书已安装到系统信任存储")
+		}
+		if shouldUpdateHosts {
+			fmt.Printf("- hosts文件已更新（%s -> 127.0.0.1）\n", targetDomain)
+		}
+	} else {
+		// 不自动配置时，显示手动配置说明
+		fmt.Println("\n如需自动配置，请使用 --auto-config 参数（需要管理员权限）")
+		fmt.Println("或查看以下手动配置说明：")
+		fmt.Println(autoconfig.GetInstructions(targetDomain, "ca"))
+	}
 }
 
 func handleStart() {
