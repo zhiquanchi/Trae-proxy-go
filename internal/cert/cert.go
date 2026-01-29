@@ -39,6 +39,9 @@ func GenerateCertificates(domain string, caDir string) error {
 // checkOpenSSL 检查OpenSSL是否已安装
 func checkOpenSSL() error {
 	cmd := exec.Command("openssl", "version")
+	cmd.Stdin = nil
+	cmd.Stdout = nil
+	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("未找到OpenSSL，请确保OpenSSL已安装并在PATH中")
 	}
@@ -52,6 +55,9 @@ func generateCA(caDir string) error {
 
 	// 生成CA私钥
 	cmd := exec.Command("openssl", "genrsa", "-out", caKeyPath, "2048")
+	cmd.Stdin = nil
+	cmd.Stdout = nil
+	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("生成CA私钥失败: %w", err)
 	}
@@ -60,6 +66,9 @@ func generateCA(caDir string) error {
 	subject := "/C=CN/ST=State/L=City/O=TraeProxy CA/OU=TraeProxy/CN=TraeProxy Root CA"
 	cmd = exec.Command("openssl", "req", "-new", "-x509", "-days", "36500",
 		"-key", caKeyPath, "-out", caCertPath, "-subj", subject)
+	cmd.Stdin = nil
+	cmd.Stdout = nil
+	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("生成CA证书失败: %w", err)
 	}
@@ -99,6 +108,9 @@ DNS.1 = %s
 
 	// 生成服务器私钥
 	cmd := exec.Command("openssl", "genrsa", "-out", keyPath, "2048")
+	cmd.Stdin = nil
+	cmd.Stdout = nil
+	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("生成服务器私钥失败: %w", err)
 	}
@@ -107,6 +119,9 @@ DNS.1 = %s
 	subject := fmt.Sprintf("/C=CN/ST=State/L=City/O=Organization/OU=Unit/CN=%s", domain)
 	cmd = exec.Command("openssl", "req", "-new", "-key", keyPath,
 		"-out", csrPath, "-config", cnfPath, "-subj", subject)
+	cmd.Stdin = nil
+	cmd.Stdout = nil
+	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("生成CSR失败: %w", err)
 	}
@@ -116,6 +131,9 @@ DNS.1 = %s
 		"-in", csrPath, "-CA", caCertPath, "-CAkey", caKeyPath,
 		"-CAcreateserial", "-out", certPath, "-extensions", "v3_req",
 		"-extfile", cnfPath)
+	cmd.Stdin = nil
+	cmd.Stdout = nil
+	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("签署证书失败: %w", err)
 	}
