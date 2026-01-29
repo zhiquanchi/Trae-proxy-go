@@ -64,10 +64,10 @@ func (h *Handler) HandleModels(w http.ResponseWriter, r *http.Request) {
 	for _, api := range h.config.APIs {
 		if api.Active {
 			models = append(models, map[string]interface{}{
-				"id":        api.CustomModelID,
-				"object":    "model",
-				"created":   1,
-				"owned_by":  "trae-proxy",
+				"id":       api.CustomModelID,
+				"object":   "model",
+				"created":  1,
+				"owned_by": "trae-proxy",
 			})
 		}
 	}
@@ -236,4 +236,3 @@ func (h *Handler) writeJSON(w http.ResponseWriter, data interface{}, statusCode 
 func (h *Handler) writeError(w http.ResponseWriter, message string, statusCode int) {
 	h.writeJSON(w, map[string]string{"error": message}, statusCode)
 }
-

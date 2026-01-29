@@ -94,4 +94,3 @@ func GetDefaultConfig() *models.Config {
 		},
 	}
 }
-

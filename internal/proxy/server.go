@@ -10,9 +10,9 @@ import (
 
 // Server 代理服务器
 type Server struct {
-	config   *models.Config
-	logger   *logger.Logger
-	handler  *Handler
+	config    *models.Config
+	logger    *logger.Logger
+	handler   *Handler
 	tlsConfig *tls.Config
 }
 
@@ -75,4 +75,3 @@ func (s *Server) Start() error {
 	}
 	return server.ListenAndServe()
 }
-

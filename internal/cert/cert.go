@@ -143,4 +143,3 @@ DNS.1 = %s
 
 	return nil
 }
-

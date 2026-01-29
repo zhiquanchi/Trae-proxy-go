@@ -32,15 +32,15 @@ func GenerateReport(domain string, port int) Report {
 	notes := buildNotes(domain, env, system, portStatus)
 
 	return Report{
-		Domain:            domain,
-		Port:              port,
-		GOOS:              runtime.GOOS,
-		GOARCH:            runtime.GOARCH,
-		Env:               env,
-		System:            system,
-		PortStatus:        portStatus,
-		SuggestedNoProxy:  suggestedNoProxy,
-		Notes:             notes,
+		Domain:           domain,
+		Port:             port,
+		GOOS:             runtime.GOOS,
+		GOARCH:           runtime.GOARCH,
+		Env:              env,
+		System:           system,
+		PortStatus:       portStatus,
+		SuggestedNoProxy: suggestedNoProxy,
+		Notes:            notes,
 	}
 }
 

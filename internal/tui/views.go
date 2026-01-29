@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"trae-proxy-go/internal/autoconfig"
 	"trae-proxy-go/internal/cert"
 	"trae-proxy-go/pkg/models"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -31,14 +32,14 @@ type action struct {
 
 // 列表视图
 type listViewModel struct {
-	config  *models.Config
+	config   *models.Config
 	selected int
-	action  *action
+	action   *action
 }
 
 func newListView(cfg *models.Config) listViewModel {
 	return listViewModel{
-		config:  cfg,
+		config:   cfg,
 		selected: 0,
 	}
 }
@@ -140,15 +141,15 @@ func (m listViewModel) view(mode vimMode) string {
 
 // 添加视图
 type addViewModel struct {
-	name       textinput.Model
-	endpoint   textinput.Model
+	name        textinput.Model
+	endpoint    textinput.Model
 	customModel textinput.Model
 	targetModel textinput.Model
-	streamMode textinput.Model
-	active     bool
-	focused    int
-	done       bool
-	err        error
+	streamMode  textinput.Model
+	active      bool
+	focused     int
+	done        bool
+	err         error
 }
 
 func newAddView() addViewModel {
@@ -527,16 +528,21 @@ func (m domainViewModel) view() string {
 
 // 证书视图
 type certViewModel struct {
-	domain  string
-	done    bool
-	generating bool
-	success bool
-	err     error
+	domain      string
+	done        bool
+	generating  bool
+	success     bool
+	err         error
+	configuring bool
+	configDone  bool
+	configErr   error
+	stage       string // "prompt", "generating", "generated", "ask_config", "configuring", "complete", "skip_config", "config_error", "error"
 }
 
 func newCertView(domain string) certViewModel {
 	return certViewModel{
 		domain: domain,
+		stage:  "prompt",
 	}
 }
 
@@ -545,22 +551,52 @@ func (m certViewModel) update(msg tea.Msg) (certViewModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter", "y":
-			if !m.generating && !m.success {
+			if m.stage == "prompt" {
+				// 开始生成证书
+				m.stage = "generating"
 				m.generating = true
 				go func() {
 					err := cert.GenerateCertificates(m.domain, "ca")
 					if err == nil {
 						m.success = true
+						m.stage = "generated"
 					} else {
 						m.err = err
+						m.stage = "error"
 					}
 					m.generating = false
-					m.done = true
+				}()
+			} else if m.stage == "generated" {
+				// 证书生成成功后，询问是否自动配置
+				m.stage = "ask_config"
+			} else if m.stage == "ask_config" {
+				// 用户选择执行自动配置
+				m.stage = "configuring"
+				m.configuring = true
+				go func() {
+					err := autoconfig.AutoConfigure(m.domain, "ca", true, true)
+					if err == nil {
+						m.configDone = true
+						m.stage = "complete"
+					} else {
+						m.configErr = err
+						m.stage = "config_error"
+					}
+					m.configuring = false
 				}()
 			} else {
+				// 其他阶段按回车返回
 				m.done = true
 			}
-		case "n", "q":
+		case "n":
+			if m.stage == "prompt" {
+				// 取消生成证书
+				m.done = true
+			} else if m.stage == "ask_config" {
+				// 跳过自动配置
+				m.stage = "skip_config"
+			}
+		case "q":
 			m.done = true
 		}
 	}
@@ -572,32 +608,78 @@ func (m certViewModel) view() string {
 	s.WriteString(titleStyle.Render("生成 SSL 证书"))
 	s.WriteString("\n\n")
 
-	if m.generating {
+	switch m.stage {
+	case "prompt":
+		s.WriteString(borderStyle.Render(fmt.Sprintf(
+			"将为域名 %s 生成 SSL 证书\n\n%s生成 [y/回车]%s取消 [n/q]",
+			m.domain,
+			helpStyle.Render(""),
+			helpStyle.Render(""),
+		)))
+
+	case "generating":
 		s.WriteString(borderStyle.Render(fmt.Sprintf(
 			"正在为域名 %s 生成证书...\n请稍候",
 			m.domain,
 		)))
-		return s.String()
-	}
 
-	if m.success {
+	case "generated":
 		s.WriteString(successStyle.Render("证书生成成功!\n\n"))
 		s.WriteString(borderStyle.Render("证书文件已保存到 ca/ 目录"))
 		s.WriteString("\n\n")
-		s.WriteString(helpStyle.Render("[回车]返回 [q]退出"))
-		return s.String()
-	}
+		s.WriteString(helpStyle.Render("[回车]继续配置"))
 
-	if m.err != nil {
+	case "ask_config":
+		s.WriteString(successStyle.Render("证书生成成功!\n\n"))
+		s.WriteString(borderStyle.Render(
+			"是否自动配置系统？\n" +
+				"（将安装CA证书到系统信任存储并更新hosts文件）\n\n" +
+				"注意：需要管理员/root权限\n\n" +
+				helpStyle.Render("配置 [y/回车]  ") +
+				helpStyle.Render("跳过 [n]  ") +
+				helpStyle.Render("退出 [q]"),
+		))
+
+	case "configuring":
+		s.WriteString(borderStyle.Render(
+			"正在配置系统...\n" +
+				"- 安装CA证书到系统信任存储\n" +
+				"- 更新hosts文件\n\n" +
+				"请稍候...",
+		))
+
+	case "complete":
+		s.WriteString(successStyle.Render("配置完成!\n\n"))
+		s.WriteString(borderStyle.Render(
+			"已完成以下配置：\n" +
+				"- CA证书已安装到系统信任存储\n" +
+				fmt.Sprintf("- hosts文件已更新（%s -> 127.0.0.1）\n\n", m.domain) +
+				"您现在可以启动代理服务器了",
+		))
+		s.WriteString("\n\n")
+		s.WriteString(helpStyle.Render("[回车/q]返回"))
+
+	case "skip_config":
+		s.WriteString(successStyle.Render("证书生成成功!\n\n"))
+		s.WriteString(borderStyle.Render("已跳过自动配置"))
+		s.WriteString("\n\n")
+		s.WriteString("手动配置说明：\n")
+		s.WriteString(helpStyle.Render(autoconfig.GetInstructions(m.domain, "ca")))
+		s.WriteString("\n\n")
+		s.WriteString(helpStyle.Render("[回车/q]返回"))
+
+	case "config_error":
+		s.WriteString(errorStyle.Render(fmt.Sprintf("自动配置失败: %v\n\n", m.configErr)))
+		s.WriteString("手动配置说明：\n")
+		s.WriteString(helpStyle.Render(autoconfig.GetInstructions(m.domain, "ca")))
+		s.WriteString("\n\n")
+		s.WriteString(helpStyle.Render("[回车/q]返回"))
+
+	case "error":
 		s.WriteString(errorStyle.Render(fmt.Sprintf("错误: %v\n\n", m.err)))
+		s.WriteString(helpStyle.Render("[回车/q]返回"))
 	}
 
-	s.WriteString(borderStyle.Render(fmt.Sprintf(
-		"将为域名 %s 生成 SSL 证书\n\n%s生成 [y/回车]%s取消 [n/q]",
-		m.domain,
-		helpStyle.Render(""),
-		helpStyle.Render(""),
-	)))
 	return s.String()
 }
 
@@ -621,4 +703,3 @@ func getCheckbox(label string, checked bool, focused bool) string {
 	}
 	return style.Render(fmt.Sprintf("%s%s", checkbox, label))
 }
-

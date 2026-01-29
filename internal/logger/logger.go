@@ -7,9 +7,9 @@ import (
 
 // Logger 日志记录器
 type Logger struct {
-	debug bool
-	info  *log.Logger
-	err   *log.Logger
+	debug    bool
+	info     *log.Logger
+	err      *log.Logger
 	debugLog *log.Logger
 }
 
@@ -17,9 +17,9 @@ type Logger struct {
 func NewLogger(debug bool) *Logger {
 	flags := log.Ldate | log.Ltime | log.Lmicroseconds
 	return &Logger{
-		debug: debug,
-		info:  log.New(os.Stdout, "[INFO] ", flags),
-		err:   log.New(os.Stderr, "[ERROR] ", flags),
+		debug:    debug,
+		info:     log.New(os.Stdout, "[INFO] ", flags),
+		err:      log.New(os.Stderr, "[ERROR] ", flags),
 		debugLog: log.New(os.Stdout, "[DEBUG] ", flags),
 	}
 }
@@ -40,4 +40,3 @@ func (l *Logger) Debug(format string, v ...interface{}) {
 		l.debugLog.Printf(format, v...)
 	}
 }
-
