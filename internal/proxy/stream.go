@@ -152,4 +152,3 @@ func sendSSEChunk(w http.ResponseWriter, data map[string]interface{}) {
 	w.Write(jsonData)
 	w.Write([]byte("\n\n"))
 }
-

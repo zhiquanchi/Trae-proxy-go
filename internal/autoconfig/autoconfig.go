@@ -39,7 +39,7 @@ func AutoConfigure(domain, caDir string, installCA, updateHosts bool) error {
 // installCACertificate 安装CA证书到系统信任存储
 func installCACertificate(caDir string) error {
 	caCertPath := filepath.Join(caDir, "ca.crt")
-	
+
 	// 检查证书文件是否存在
 	if _, err := os.Stat(caCertPath); os.IsNotExist(err) {
 		return fmt.Errorf("CA证书文件不存在: %s", caCertPath)
@@ -67,7 +67,7 @@ func updateHostsFile(domain string) error {
 	// 检查是否已经存在该域名的配置
 	contentStr := string(content)
 	entry := fmt.Sprintf("127.0.0.1 %s", domain)
-	
+
 	if containsHostsEntry(contentStr, domain) {
 		// 已存在，无需添加
 		return nil
@@ -97,7 +97,7 @@ func containsHostsEntry(content, domain string) bool {
 		if len(trimmed) == 0 || trimmed[0] == '#' {
 			continue
 		}
-		
+
 		// 检查是否包含该域名
 		if containsString(trimmed, domain) {
 			return true
@@ -126,17 +126,17 @@ func splitLines(s string) []string {
 func trimSpace(s string) string {
 	start := 0
 	end := len(s)
-	
+
 	// 去除前导空白
 	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\r') {
 		start++
 	}
-	
+
 	// 去除尾部空白
 	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\r') {
 		end--
 	}
-	
+
 	return s[start:end]
 }
 
@@ -162,7 +162,7 @@ func NeedsElevatedPrivileges() bool {
 // GetInstructions 获取手动配置说明（用于无法自动配置时）
 func GetInstructions(domain, caDir string) string {
 	caCertPath := filepath.Join(caDir, "ca.crt")
-	
+
 	var instructions string
 	switch runtime.GOOS {
 	case "windows":
@@ -211,6 +211,6 @@ func GetInstructions(domain, caDir string) string {
 	default:
 		instructions = fmt.Sprintf("不支持的操作系统: %s\n请手动配置CA证书和hosts文件", runtime.GOOS)
 	}
-	
+
 	return instructions
 }

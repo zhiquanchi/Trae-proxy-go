@@ -27,4 +27,3 @@ func selectBackendByModel(config *models.Config, requestedModel string) *models.
 
 	return nil
 }
-

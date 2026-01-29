@@ -480,4 +480,3 @@ func handleDoctor() {
 		fmt.Printf("  - %s\n", note)
 	}
 }
-

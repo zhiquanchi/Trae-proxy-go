@@ -13,21 +13,21 @@ func installCACert(certPath string) error {
 	// 这里使用最常见的方法：Debian/Ubuntu系列
 	targetDir := "/usr/local/share/ca-certificates"
 	targetPath := filepath.Join(targetDir, "trae-proxy-ca.crt")
-	
+
 	// 检查目标目录是否存在
 	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
 		// 尝试Red Hat/CentOS系列的路径
 		targetDir = "/etc/pki/ca-trust/source/anchors"
 		targetPath = filepath.Join(targetDir, "trae-proxy-ca.crt")
-		
+
 		if _, err := os.Stat(targetDir); os.IsNotExist(err) {
 			return fmt.Errorf("找不到系统CA证书目录，请手动安装")
 		}
-		
+
 		// Red Hat/CentOS系列
 		return installCACertRedHat(certPath, targetPath)
 	}
-	
+
 	// Debian/Ubuntu系列
 	return installCACertDebian(certPath, targetPath)
 }
@@ -39,13 +39,13 @@ func installCACertDebian(certPath, targetPath string) error {
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("复制证书失败: %w, 输出: %s", err, string(output))
 	}
-	
+
 	// 更新CA证书
 	cmd = exec.Command("sudo", "update-ca-certificates")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("更新CA证书失败: %w, 输出: %s", err, string(output))
 	}
-	
+
 	return nil
 }
 
@@ -56,12 +56,12 @@ func installCACertRedHat(certPath, targetPath string) error {
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("复制证书失败: %w, 输出: %s", err, string(output))
 	}
-	
+
 	// 更新CA证书
 	cmd = exec.Command("sudo", "update-ca-trust")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("更新CA证书失败: %w, 输出: %s", err, string(output))
 	}
-	
+
 	return nil
 }

@@ -18,8 +18,7 @@ type Server struct {
 
 // Config 完整配置结构
 type Config struct {
-	Domain string  `yaml:"domain" json:"domain"`
-	APIs   []API   `yaml:"apis" json:"apis"`
-	Server Server  `yaml:"server" json:"server"`
+	Domain string `yaml:"domain" json:"domain"`
+	APIs   []API  `yaml:"apis" json:"apis"`
+	Server Server `yaml:"server" json:"server"`
 }
-

@@ -9,6 +9,7 @@
 - **模型映射**: 自定义模型 ID 映射，无缝替换目标模型
 - **流式响应**: 支持流式和非流式响应模式切换
 - **SSL 证书**: 自动生成和管理自签名证书
+- **自动配置**: 证书生成后自动安装CA证书和配置hosts文件
 - **TUI 界面**: 友好的终端用户界面，方便配置管理
 - **高性能**: 基于 Go 实现，性能优异
 
@@ -84,7 +85,27 @@ TUI 界面快捷键：
 
 # 或指定域名
 ./trae-proxy-cli cert --domain api.openai.com
+
+# 生成证书并自动配置系统（推荐，需要管理员/root权限）
+./trae-proxy-cli cert --auto-config
+
+# 仅安装CA证书到系统信任存储
+./trae-proxy-cli cert --install-ca
+
+# 仅更新hosts文件
+./trae-proxy-cli cert --update-hosts
 ```
+
+**自动配置功能：**
+
+使用 `--auto-config` 参数可以在证书生成后自动完成以下配置：
+1. 安装CA证书到系统信任存储
+2. 更新hosts文件，将域名指向 127.0.0.1
+
+这样您无需手动配置，可以立即使用代理服务。
+
+> 注意：自动配置需要管理员权限（Windows）或root权限（macOS/Linux）。
+> 在TUI界面中生成证书后，也会提示是否进行自动配置。
 
 ### 启动服务器
 
