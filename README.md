@@ -1,3 +1,5 @@
+# 此项目不在维护，traecn已经官方支持添加自定义端点。此项目已经无意义继续维护
+
 # Trae-Proxy Go
 
 这是 Trae-Proxy 的 Golang 实现版本，一个高性能的 API 代理工具，专门用于拦截和重定向 OpenAI API 请求到自定义后端服务。
